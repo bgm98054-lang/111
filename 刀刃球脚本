@@ -1,0 +1,48 @@
+import pygame
+import sys
+import random
+import math
+
+# 初始化Pygame
+pygame.init()
+
+# 屏幕设置
+WIDTH, HEIGHT = 800, 600
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("刀刃球游戏")
+
+# 颜色定义
+WHITE = (255, 255, 255)
+RED = (255, 0, 0)
+BLUE = (0, 0, 255)
+BLACK = (0, 0, 0)
+GREEN = (0, 255, 0)
+
+# 玩家类
+class Player:
+    def __init__(self):
+        self.radius = 20
+        self.x = WIDTH // 2
+        self.y = HEIGHT // 2
+        self.speed = 5
+        self.color = BLUE
+        self.score = 0
+        self.lives = 3
+    
+    def move(self, keys):
+        if keys[pygame.K_LEFT] and self.x - self.radius > 0:
+            self.x -= self.speed
+        if keys[pygame.K_RIGHT] and self.x + self.radius < WIDTH:
+            self.x += self.speed
+        if keys[pygame.K_UP] and self.y - self.radius > 0:
+            self.y -= self.speed
+        if keys[pygame.K_DOWN] and self.y + self.radius < HEIGHT:
+            self.y += self.speed
+    
+    def draw(self):
+        pygame.draw.circle(screen, self.color, (self.x, self.y), self.radius)
+        # 绘制刀刃效果
+        pygame.draw.circle(screen, RED, (self.x, self.y), self.radius, 2)
+        for i in range(8):
+            angle = i * (2 * math.pi / 8)
+            end_x = self.x + (self.radius + 5) * math.cos(angle)
