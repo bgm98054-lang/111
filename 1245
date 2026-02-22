@@ -1,0 +1,105 @@
+--  Nico's Nextbots 自定义机器人 - 进阶质感版
+--  放置位置：ServerScriptService 或 NPC 的 ServerScript 容器
+
+local npc = script.Parent
+local humanoid = npc:WaitForChild("Humanoid")
+local rootPart = npc:WaitForChild("HumanoidRootPart")
+local walkSpeed = 30
+local jumpChance = 0.1  -- 追击时跳跃的概率（10%）
+local detectRange = 60
+local damage = 8
+
+-- 服务
+local Players = game:GetService("Players")
+local SoundService = game:GetService("SoundService")
+
+-- 音效（替换为你自己的音效ID，或用官方音效）
+local chaseSound = Instance.new("Sound")
+chaseSound.SoundId = "rbxassetid://123456789"  -- 替换为你的追击音效ID
+chaseSound.Looped = true
+chaseSound.Volume = 0.8
+chaseSound.Parent = rootPart
+
+local jumpSound = Instance.new("Sound")
+jumpSound.SoundId = "rbxassetid://987654321"  -- 替换为你的跳跃音效ID
+jumpSound.Volume = 0.6
+jumpSound.Parent = rootPart
+
+-- 禁用自然AI
+humanoid:SetStateEnabled(Enum.HumanoidStateType.Wander, false)
+humanoid:SetStateEnabled(Enum.HumanoidStateType.Flee, false)
+
+-- 获取最近玩家
+local function getNearestPlayer()
+    local nearest = nil
+    local dist = math.huge
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character.Humanoid.Health > 0 then
+            local d = (rootPart.Position - p.Character.HumanoidRootPart.Position).Magnitude
+            if d < detectRange and d < dist then
+                dist = d
+                nearest = p
+            end
+        end
+    end
+    return nearest
+end
+
+-- 随机跳跃
+local function tryJump()
+    if math.random() < jumpChance then
+        humanoid:Jump()
+        jumpSound:Play()
+    end
+end
+
+-- 追击逻辑
+local function chase()
+    while task.wait(0.08) do
+        local target = getNearestPlayer()
+        if target then
+            chaseSound:Play()  -- 开始追击音效
+            local dir = (target.Character.HumanoidRootPart.Position - rootPart.Position).Unit
+            humanoid:MoveTo(rootPart.Position + dir * 12)
+            tryJump()  -- 概率跳跃
+        else
+            chaseSound:Stop()  -- 无目标停止音效
+            humanoid:MoveTo(rootPart.Position)
+        end
+    end
+end
+
+-- 触碰伤害
+local function onTouch(hit)
+    local char = hit.Parent
+    local ply = Players:GetPlayerFromCharacter(char)
+    if ply and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0 then
+        char.Humanoid:TakeDamage(damage)
+    end
+end
+
+-- 死亡特效+音效
+local function onDeath()
+    chaseSound:Stop()
+    -- 死亡粒子特效（替换为你的特效）
+    local explosion = Instance.new("ParticleEmitter")
+    explosion.Texture = "rbxassetid://456789123"  -- 死亡特效贴图
+    explosion.Parent = rootPart
+    explosion:Emit(50)
+    -- 死亡音效
+    local deathSound = Instance.new("Sound")
+    deathSound.SoundId = "rbxassetid://1122334455"
+    deathSound.Volume = 1
+    deathSound.Parent = rootPart
+    deathSound:Play()
+    -- 延迟销毁
+    task.wait(3)
+    npc:Destroy()
+end
+
+-- 绑定事件
+rootPart.Touched:Connect(onTouch)
+humanoid.Died:Connect(onDeath)
+
+-- 启动
+chase()
